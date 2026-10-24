@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OC赛博斗蛐蛐 · 战力排行榜</title>
+  <!-- html2canvas 用于导出图片 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    /* 全局毛玻璃风格，白色为主 */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      background: linear-gradient(145deg, #e9eef3 0%, #f8faff 100%);
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 2rem 1.5rem;
+      backdrop-filter: blur(2px);
+    }
+
+    /* 毛玻璃主容器 */
+    .glass-container {
+      width: 100%;
+      max-width: 1000px;
+      background: rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      border-radius: 42px;
+      box-shadow: 0 25px 50px -8px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.7);
+      padding: 2rem 2rem 2.5rem;
+      border: 1px solid rgba(255, 255, 255, 0.8);
+    }
+
+    /* 大标题 */
+    h1 {
+      font-size: 3.2rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-align: center;
+      color: #1e2b3c;
+      text-shadow: 0 4px 12px rgba(255, 255, 255, 0.8);
+      margin-bottom: 0.25rem;
+      word-break: break-word;
+    }
+
+    .subhead {
+      text-align: center;
+      color: #4a5e74;
+      font-weight: 400;
+      letter-spacing: 0.3px;
+      margin-bottom: 1.8rem;
+      font-size: 1.05rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.8);
+      padding-bottom: 0.75rem;
+    }
+
+    /* 工具栏：添加角色 & 导出图片 */
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    /* 玻璃按钮 */
+    .glass-btn {
+      background: rgba(255, 255, 255, 0.65);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      padding: 0.7rem 1.6rem;
+      border-radius: 48px;
+      font-weight: 500;
+      color: #1e2b3c;
+      cursor: pointer;
+      box-shadow: 0 8px 20px -6px rgba(0, 0, 0, 0.08);
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.95rem;
+      letter-spacing: 0.2px;
+    }
+
+    .glass-btn:hover {
+      background: rgba(255, 255, 255, 0.9);
+      box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.15);
+      transform: translateY(-1px);
+    }
+
+    .glass-btn:active {
+      transform: translateY(1px);
+      box-shadow: 0 4px 12px -4px rgba(0, 0, 0, 0.1);
+    }
+
+    .glass-btn.danger {
+      color: #b13e3e;
+    }
+
+    .glass-btn.danger:hover {
+      background: rgba(255, 235, 235, 0.9);
+    }
+
+    /* 排行榜列表 */
+    .ranking-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 1.5rem;
+      min-height: 200px;
+    }
+
+    /* 排名卡片——毛玻璃白 */
+    .rank-card {
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      border-radius: 28px;
+      padding: 0.9rem 1.2rem 0.9rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      box-shadow: 0 6px 16px -6px rgba(0, 0, 0, 0.08);
+      transition: all 0.15s ease;
+      cursor: grab;
+      position: relative;
+    }
+
+    .rank-card:active {
+      cursor: grabbing;
+    }
+
+    .rank-card.dragging {
+      opacity: 0.5;
+      background: rgba(255, 255, 255, 0.9);
+      box-shadow: 0 16px 30px -10px rgba(0, 0, 0, 0.2);
+    }
+
+    .rank-card.drag-over {
+      border: 2px dashed #6d8bb0;
+      background: rgba(240, 248, 255, 0.9);
+    }
+
+    /* 排名数字 */
+    .rank-number {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #4a6b8a;
+      min-width: 2.5rem;
+      text-align: center;
+      background: rgba(255, 255, 255, 0.6);
+      border-radius: 50px;
+      line-height: 1;
+      padding: 0.25rem 0.4rem;
+      letter-spacing: -0.5px;
+      text-shadow: 0 1px 2px white;
+    }
+
+    /* 头像容器 */
+    .avatar {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: rgba(220, 230, 245, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      flex-shrink: 0;
+      border: 2px solid rgba(255, 255, 255, 0.9);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    .avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* 角色信息区域 */
+    .info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0; /* 防止文本溢出 */
+    }
+
+    .name {
+      font-weight: 700;
+      font-size: 1.2rem;
+      color: #1e2b3c;
+      letter-spacing: -0.2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .desc {
+      font-size: 0.85rem;
+      color: #4f6479;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      background: rgba(255, 255, 255, 0.4);
+      padding: 0.2rem 0.6rem;
+      border-radius: 24px;
+      display: inline-block;
+      max-width: 100%;
+    }
+
+    /* 操作按钮区 */
+    .actions {
+      display: flex;
+      gap: 6px;
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+
+    .icon-btn {
+      background: transparent;
+      border: none;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      cursor: pointer;
+      color: #5a6f85;
+      transition: all 0.15s ease;
+    }
+
+    .icon-btn:hover {
+      background: rgba(255, 255, 255, 0.9);
+      color: #1e2b3c;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    .icon-btn.delete:hover {
+      background: #ffe6e6;
+      color: #b13e3e;
+    }
+
+    /* 空状态 */
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: #6b7f96;
+      font-style: italic;
+      background: rgba(255, 255, 255, 0.4);
+      border-radius: 28px;
+      border: 1px dashed rgba(255, 255, 255, 1);
+      backdrop-filter: blur(4px);
+    }
+
+    /* 底部提示 */
+    .hint {
+      text-align: center;
+      font-size: 0.8rem;
+      color: #7a8da3;
+      margin-top: 1rem;
+    }
+
+    /* 隐藏 file input */
+    .hidden-file {
+      display: none;
+    }
+
+    /* 调整一下移动端 */
+    @media (max-width: 600px) {
+      body { padding: 1rem; }
+      .glass-container { padding: 1.5rem; }
+      h1 { font-size: 2.2rem; }
+      .rank-card { flex-wrap: wrap; }
+      .actions { margin-left: 0; }
+      .avatar { width: 48px; height: 48px; }
+    }
+
+    /* 导出时避免阴影过大 */
+    #exportArea {
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+<div class="glass-container" id="exportArea">
+  <h1>OC赛博斗蛐蛐</h1>
+  <div class="subhead">战力排行榜 · 拖拽调整你的OC顺序</div>
+
+  <!-- 工具栏 -->
+  <div class="toolbar">
+    <div class="btn-group">
+      <button class="glass-btn" id="addBtn">
+        <span>➕</span> 添加OC
+      </button>
+    </div>
+    <div class="btn-group">
+      <button class="glass-btn" id="exportBtn">
+        <span>🖼️</span> 导出排行榜图片
+      </button>
+    </div>
+  </div>
+
+  <!-- 排行榜列表 -->
+  <div class="ranking-list" id="rankingList">
+    <!-- 动态生成排名卡片，初始为空显示提示 -->
+  </div>
+
+  <div class="hint">拖动卡片可以改变排名顺序 · 头像自动压缩至200x200</div>
+</div>
+
+<!-- 隐藏的上传头像输入框，点击卡片里的头像图标触发 -->
+<input type="file" id="avatarInput" class="hidden-file" accept="image/*">
+
+<script>
+  (function() {
+    // ----- 数据存储 -----
+    // 每个角色: { id, name, desc, avatar }  avatar 为 base64 字符串（压缩后）
+    let characters = [];
+
+    // 用于标识当前正在为哪个角色上传头像
+    let currentAvatarTargetId = null;
+
+    // DOM 元素
+    const rankingList = document.getElementById('rankingList');
+    const addBtn = document.getElementById('addBtn');
+    const exportBtn = document.getElementById('exportBtn');
+    const avatarInput = document.getElementById('avatarInput');
+    const exportArea = document.getElementById('exportArea');
+
+    // ----- 工具函数：生成短id -----
+    function generateId() {
+      return Date.now() + '-' + Math.random().toString(36).substring(2, 9);
+    }
+
+    // ----- 渲染排行榜 (完全基于 characters 数组顺序) -----
+    function render() {
+      if (!rankingList) return;
+
+      if (characters.length === 0) {
+        rankingList.innerHTML = `<div class="empty-state">🦗 还没有OC，点击「添加OC」开始排战力吧</div>`;
+        return;
+      }
+
+      // 构建所有卡片
+      const fragment = document.createDocumentFragment();
+
+      characters.forEach((char, index) => {
+        const card = document.createElement('div');
+        card.className = 'rank-card';
+        card.setAttribute('draggable', 'true');
+        card.dataset.id = char.id;
+        card.dataset.index = index; // 用于拖拽
+
+        // 排名数字
+        const rankDiv = document.createElement('div');
+        rankDiv.className = 'rank-number';
+        rankDiv.textContent = index + 1;
+
+        // 头像容器
+        const avatarDiv = document.createElement('div');
+        avatarDiv.className = 'avatar';
+        // 如果有头像则显示图片，否则显示占位文字
+        if (char.avatar) {
+          const img = document.createElement('img');
+          img.src = char.avatar;
+          img.alt = 'avatar';
+          avatarDiv.appendChild(img);
+        } else {
+          // 显示一个简单占位图标
+          avatarDiv.innerHTML = `<span style="font-size: 1.8rem; opacity: 0.6;">🐟</span>`;
+        }
+
+        // 信息区
+        const infoDiv = document.createElement('div');
+        infoDiv.className = 'info';
+
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'name';
+        nameDiv.textContent = char.name || '无名OC';
+
+        const descDiv = document.createElement('div');
+        descDiv.className = 'desc';
+        descDiv.textContent = char.desc || '暂无说明';
+
+        infoDiv.appendChild(nameDiv);
+        infoDiv.appendChild(descDiv);
+
+        // 操作按钮 (上传头像、删除)
+        const actionsDiv = document.createElement('div');
+        actionsDiv.className = 'actions';
+
+        // 上传头像按钮
+        const uploadBtn = document.createElement('button');
+        uploadBtn.className = 'icon-btn';
+        uploadBtn.innerHTML = '📷';
+        uploadBtn.title = '上传头像 (自动压缩)';
+        uploadBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          currentAvatarTargetId = char.id;
+          avatarInput.click();
+        });
+
+        // 删除按钮
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'icon-btn delete';
+        deleteBtn.innerHTML = '🗑️';
+        deleteBtn.title = '删除角色';
+        deleteBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          deleteCharacter(char.id);
+        });
+
+        actionsDiv.appendChild(uploadBtn);
+        actionsDiv.appendChild(deleteBtn);
+
+        // 组装卡片
+        card.appendChild(rankDiv);
+        card.appendChild(avatarDiv);
+        card.appendChild(infoDiv);
+        card.appendChild(actionsDiv);
+
+        // ----- 拖拽事件 (HTML5 drag and drop) -----
+        card.addEventListener('dragstart', handleDragStart);
+        card.addEventListener('dragend', handleDragEnd);
+        card.addEventListener('dragover', handleDragOver);
+        card.addEventListener('dragenter', handleDragEnter);
+        card.addEventListener('dragleave', handleDragLeave);
+        card.addEventListener('drop', handleDrop);
+
+        // 点击卡片也可以编辑名字和说明（通过双击或点击名称区域，但这里简化：双击卡片弹出编辑）
+        // 但为了用户友好，增加双击编辑功能
+        card.addEventListener('dblclick', (e) => {
+          e.stopPropagation();
+          editCharacter(char.id);
+        });
+
+        fragment.appendChild(card);
+      });
+
+      rankingList.innerHTML = '';
+      rankingList.appendChild(fragment);
+    }
+
+    // ----- 拖拽逻辑 -----
+    let dragItem = null;
+    let dragSourceIndex = null;
+
+    function handleDragStart(e) {
+      const card = e.currentTarget;
+      dragItem = card;
+      dragSourceIndex = parseInt(card.dataset.index, 10);
+      card.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      // 需要设置数据，否则Firefox不触发drag
+      e.dataTransfer.setData('text/plain', card.dataset.id);
+    }
+
+    function handleDragEnd(e) {
+      const card = e.currentTarget;
+      card.classList.remove('dragging');
+      // 移除所有drag-over样式
+      document.querySelectorAll('.rank-card').forEach(c => c.classList.remove('drag-over'));
+      dragItem = null;
+      dragSourceIndex = null;
+    }
+
+    function handleDragOver(e) {
+      e.preventDefault(); // 允许放置
+      e.dataTransfer.dropEffect = 'move';
+    }
+
+    function handleDragEnter(e) {
+      e.preventDefault();
+      const card = e.currentTarget;
+      if (dragItem && card !== dragItem) {
+        card.classList.add('drag-over');
+      }
+    }
+
+    function handleDragLeave(e) {
+      const card = e.currentTarget;
+      card.classList.remove('drag-over');
+    }
+
+    function handleDrop(e) {
+      e.preventDefault();
+      const targetCard = e.currentTarget;
+      const targetId = targetCard.dataset.id;
+      targetCard.classList.remove('drag-over');
+
+      if (!dragItem) return;
+      const dragId = dragItem.dataset.id;
+
+      // 如果拖拽的是同一个卡片，不处理
+      if (dragId === targetId) return;
+
+      // 找到在 characters 数组中的索引
+      const dragIndex = characters.findIndex(c => c.id === dragId);
+      const targetIndex = characters.findIndex(c => c.id === targetId);
+
+      if (dragIndex === -1 || targetIndex === -1) return;
+
+      // 移动数组元素: 将 dragIndex 的元素移动到 targetIndex 位置
+      const [movedItem] = characters.splice(dragIndex, 1);
+      characters.splice(targetIndex, 0, movedItem);
+
+      // 重新渲染
+      render();
+    }
+
+    // ----- 添加角色 -----
+    function addCharacter() {
+      const newChar = {
+        id: generateId(),
+        name: '新OC',
+        desc: '描述一下战力…',
+        avatar: null
+      };
+      characters.push(newChar);
+      render();
+      // 可选：自动滚动到新卡片并进入编辑状态？为了简洁，双击编辑。
+    }
+
+    // ----- 删除角色 -----
+    function deleteCharacter(id) {
+      characters = characters.filter(c => c.id !== id);
+      render();
+    }
+
+    // ----- 编辑角色名字和说明 (双击卡片触发) -----
+    function editCharacter(id) {
+      const char = characters.find(c => c.id === id);
+      if (!char) return;
+
+      const newName = prompt('修改角色名称', char.name);
+      if (newName === null) return; // 取消
+      const newDesc = prompt('修改角色说明', char.desc);
+      if (newDesc === null) return;
+
+      char.name = newName.trim() || '无名OC';
+      char.desc = newDesc.trim() || '暂无说明';
+      render();
+    }
+
+    // ----- 处理头像上传 & 压缩 -----
+    function handleAvatarUpload(event) {
+      const file = event.target.files[0];
+      if (!file || !currentAvatarTargetId) {
+        avatarInput.value = ''; // 清空
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          // 压缩至 200x200 正方形 (如果宽高比不同，裁剪居中)
+          const canvas = document.createElement('canvas');
+          const size = 200;
+          canvas.width = size;
+          canvas.height = size;
+          const ctx = canvas.getContext('2d');
+
+          // 计算裁剪区域（居中裁剪）
+          const sourceWidth = img.width;
+          const sourceHeight = img.height;
+          const minDim = Math.min(sourceWidth, sourceHeight);
+          const sx = (sourceWidth - minDim) / 2;
+          const sy = (sourceHeight - minDim) / 2;
+          const sSize = minDim;
+
+          ctx.drawImage(img, sx, sy, sSize, sSize, 0, 0, size, size);
+
+          // 转换为webp或jpeg以获得较好压缩，这里用jpeg质量0.8 (没有透明需求)
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8);
+
+          // 更新角色头像
+          const char = characters.find(c => c.id === currentAvatarTargetId);
+          if (char) {
+            char.avatar = compressedBase64;
+            render();
+          }
+
+          // 重置
+          currentAvatarTargetId = null;
+          avatarInput.value = '';
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // ----- 导出图片 (html2canvas) -----
+    function exportAsImage() {
+      if (characters.length === 0) {
+        alert('还没有OC，先添加几个再导出吧～');
+        return;
+      }
+
+      // 为了导出效果好一点，临时隐藏工具栏中的按钮？但是工具栏也在导出区域内。
+      // 但需求是导出排行榜图片，工具栏保留可能不美，但也可以。我们保持界面原样导出，
+      // 不过可以稍微调整：隐藏“导出图片”按钮自身？为了美观我们暂时不隐藏，用户可自行裁剪。
+      // 也可以克隆一个区域，但这里简单处理。
+      // 使用html2canvas配置
+      html2canvas(exportArea, {
+        scale: 1.8,
+        backgroundColor: '#ffffff',
+        allowTaint: false,
+        useCORS: true,
+        logging: false,
+        windowWidth: exportArea.scrollWidth,
+        windowHeight: exportArea.scrollHeight
+      }).then((canvas) => {
+        // 自动下载
+        const link = document.createElement('a');
+        link.download = `OC赛博斗蛐蛐_排行榜_${new Date().toISOString().slice(0,10)}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      }).catch(err => {
+        console.error('导出失败', err);
+        alert('导出图片失败，请重试或检查控制台。');
+      });
+    }
+
+    // ----- 初始化事件监听 & 加载示例数据 (可选) -----
+    function init() {
+      // 添加几个示例角色，方便立刻看到效果
+      if (characters.length === 0) {
+        // 示例头像用简单的颜色块+文本？为了好看，用svg占位或者干脆不用头像。
+        // 但是展示用，可以创建几个带占位头像的角色。用简单的base64生成不易，我们用纯色+文字替代
+        // 实际上头像可以为空，显示🐟图标
+        characters = [
+          { id: generateId(), name: '星穹·夜阑', desc: 'sss级 · 时空掌控者', avatar: null },
+          { id: generateId(), name: '赤刃·红莲', desc: 's级 · 火焰剑豪', avatar: null },
+          { id: generateId(), name: '白羽·清弦', desc: 'a级 · 治愈咏唱', avatar: null },
+          { id: generateId(), name: '暗影·无月', desc: 'ss级 · 暗杀者', avatar: null }
+        ];
+      }
+
+      render();
+
+      // 添加按钮
+      addBtn.addEventListener('click', addCharacter);
+
+      // 导出按钮
+      exportBtn.addEventListener('click', exportAsImage);
+
+      // 头像上传
+      avatarInput.addEventListener('change', handleAvatarUpload);
+
+      // 全局阻止默认拖拽（防止浏览器打开文件），但不要影响卡片拖拽
+      document.addEventListener('dragover', (e) => e.preventDefault());
+      document.addEventListener('drop', (e) => e.preventDefault());
+    }
+
+    // 启动
+    init();
+  })();
+</script>
+</body>
+</html>
