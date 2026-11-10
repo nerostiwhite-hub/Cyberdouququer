@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -367,6 +367,128 @@
     .toast.show {
       opacity: 1;
     }
+
+    /* 导出专用容器样式（更大的字号，更清晰） */
+    .export-page {
+      background: linear-gradient(145deg, #f0f4fa 0%, #e6ecf5 100%);
+      padding: 40px 30px;
+      width: 800px; /* 固定宽度让截图更可控 */
+      border-radius: 40px;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.2);
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .export-header {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    .export-header h2 {
+      font-size: 42px;
+      font-weight: 800;
+      color: #0b1a2f;
+      letter-spacing: -0.02em;
+      margin-bottom: 4px;
+      text-shadow: 2px 2px 12px rgba(255,255,255,0.9);
+    }
+
+    .export-header .page-info {
+      font-size: 18px;
+      color: #3a4c66;
+      font-weight: 500;
+      opacity: 0.8;
+    }
+
+    .export-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .export-rank-item {
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(12px);
+      border-radius: 28px;
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.03), 0 0 0 1px rgba(255, 255, 255, 0.8) inset;
+      display: flex;
+      align-items: center;
+      padding: 16px 22px 16px 16px;
+      gap: 20px;
+    }
+
+    .export-rank-number {
+      font-weight: 800;
+      font-size: 28px;
+      color: #344e6c;
+      min-width: 52px;
+      text-align: center;
+      background: rgba(255, 255, 255, 0.5);
+      border-radius: 24px;
+      padding: 4px 8px;
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.8) inset;
+    }
+
+    .export-avatar {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: rgba(220, 230, 245, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      border: 3px solid white;
+      box-shadow: 0 8px 18px -8px rgba(0, 0, 0, 0.15);
+      flex-shrink: 0;
+    }
+
+    .export-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .export-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .export-name {
+      font-weight: 700;
+      font-size: 26px;
+      color: #0b1a2f;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .export-desc {
+      font-size: 18px;
+      color: #3e5670;
+      font-weight: 400;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      opacity: 0.9;
+    }
+
+    .export-footer {
+      margin-top: 12px;
+      text-align: center;
+      font-size: 14px;
+      color: #6b7f96;
+      opacity: 0.7;
+      border-top: 1px solid rgba(255,255,255,0.5);
+      padding-top: 16px;
+    }
   </style>
 </head>
 <body>
@@ -377,7 +499,7 @@
   <!-- 工具栏 -->
   <div class="toolbar">
     <button class="btn" id="saveBtn" title="手动保存到本地">💾 手动保存</button>
-    <button class="btn" id="exportBtn" title="导出排行榜图片">📸 导出图片</button>
+    <button class="btn" id="exportBtn" title="导出排行榜图片（每页10个角色）">📸 导出图片</button>
     <button class="btn btn-primary" id="resetBtn" title="重置为示例角色">🔄 重置示例</button>
   </div>
 
@@ -407,13 +529,13 @@
     // ---------- 数据存储 ----------
     const STORAGE_KEY = 'cyber_cricket_ranking_v1';
     
-    // 示例角色（包含头像base64模拟，实际会压缩）
+    // 示例角色
     const SAMPLE_CHARS = [
       {
         id: 'sample-trump',
         name: '川普',
         desc: '懂王 · 推特战神 · 让美国再次伟大',
-        avatar: null // 占位，后面用canvas画一个简单头像
+        avatar: null
       },
       {
         id: 'sample-biden',
@@ -443,18 +565,16 @@
     // 待上传头像临时数据
     let pendingAvatarBase64 = null;
 
-    // ---------- 工具：生成占位头像（示例用，基于字母/颜色）----------
+    // ---------- 工具：生成占位头像 ----------
     function generatePlaceholderAvatar(name) {
       const canvas = document.createElement('canvas');
       canvas.width = 128;
       canvas.height = 128;
       const ctx = canvas.getContext('2d');
-      // 随机背景色基于名字
       const colors = ['#4A6FA5', '#6B8CBE', '#2D4A6B', '#496D91', '#6488B0'];
       const hash = name.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
       ctx.fillStyle = colors[hash % colors.length];
       ctx.fillRect(0, 0, 128, 128);
-      // 绘制第一个字符
       ctx.font = 'bold 64px "Inter", system-ui, sans-serif';
       ctx.fillStyle = '#FFFFFF';
       ctx.textAlign = 'center';
@@ -495,18 +615,17 @@
       return false;
     }
 
-    // 自动保存（防抖）
+    // 自动保存
     function autoSave() {
       if (isInternalUpdate) return;
       saveToLocal();
     }
 
-    // ---------- 渲染排行列表 ----------
+    // ---------- 渲染排行列表（主界面） ----------
     function renderList() {
       if (!rankingList) return;
       isInternalUpdate = true;
 
-      // 清空列表
       rankingList.innerHTML = '';
 
       characters.forEach((char, index) => {
@@ -539,7 +658,6 @@
           avatarWrapper.appendChild(placeholder);
         }
 
-        // 点击头像更换上传
         avatarWrapper.addEventListener('click', (e) => {
           e.stopPropagation();
           const charId = char.id;
@@ -611,7 +729,6 @@
         dragClass: 'sortable-drag',
         handle: '.rank-item',
         onEnd: function(evt) {
-          // 拖动结束后重新排序 characters 数组
           const oldIndex = evt.oldIndex;
           const newIndex = evt.newIndex;
           if (oldIndex === newIndex) return;
@@ -619,7 +736,6 @@
           const movedItem = characters.splice(oldIndex, 1)[0];
           characters.splice(newIndex, 0, movedItem);
           
-          // 重新渲染以更新序号
           renderList();
           autoSave();
           showToast('顺序已调整');
@@ -629,7 +745,7 @@
       isInternalUpdate = false;
     }
 
-    // ---------- 图片压缩 (返回base64，最大尺寸128px) ----------
+    // ---------- 图片压缩 ----------
     function compressImage(file, callback) {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -674,7 +790,6 @@
         return;
       }
 
-      // 检查重名（可选）
       if (characters.some(c => c.name === name)) {
         showToast('角色名已存在');
         return;
@@ -691,7 +806,6 @@
       renderList();
       autoSave();
 
-      // 清空表单和临时头像
       newName.value = '';
       newDesc.value = '';
       pendingAvatarBase64 = null;
@@ -699,7 +813,7 @@
       showToast(`已添加 ${name}`);
     }
 
-    // ---------- 处理添加时的头像上传 ----------
+    // ---------- 头像上传预处理 ----------
     avatarInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -719,57 +833,146 @@
       }
     }
 
-    // ---------- 导出图片 ----------
+    // ---------- 导出图片（分页，每页10个，放大文字） ----------
     function exportAsImage() {
-      // 临时隐藏操作按钮和添加表单（让截图更干净）
-      const itemActions = document.querySelectorAll('.item-actions');
-      const addForm = document.querySelector('.add-form');
-      const toolbar = document.querySelector('.toolbar');
-      const originalDisplayActions = [];
-      
-      itemActions.forEach(el => {
-        originalDisplayActions.push(el.style.display);
-        el.style.display = 'none';
-      });
-      if (addForm) addForm.style.display = 'none';
-      if (toolbar) toolbar.style.display = 'none';
+      if (!characters.length) {
+        showToast('没有角色可以导出');
+        return;
+      }
 
-      // 给排行榜一点边距
-      const originalPadding = appContainer.style.padding;
-      appContainer.style.padding = '2rem';
+      // 每页10个角色
+      const ITEMS_PER_PAGE = 10;
+      const totalPages = Math.ceil(characters.length / ITEMS_PER_PAGE);
 
-      html2canvas(appContainer, {
-        backgroundColor: null,
-        scale: 1.5,
-        allowTaint: false,
-        useCORS: true,
-        logging: false,
-      }).then(canvas => {
-        // 恢复显示
-        itemActions.forEach((el, idx) => {
-          el.style.display = originalDisplayActions[idx] || 'flex';
+      showToast(`正在生成 ${totalPages} 页图片...`);
+
+      // 用于存储每一页canvas的数组
+      const canvases = [];
+
+      // 递归生成每一页
+      function generatePage(pageIndex) {
+        if (pageIndex >= totalPages) {
+          // 全部生成完毕，下载所有图片
+          downloadAll(canvases);
+          return;
+        }
+
+        const start = pageIndex * ITEMS_PER_PAGE;
+        const pageChars = characters.slice(start, start + ITEMS_PER_PAGE);
+
+        // 创建导出用的临时容器
+        const exportContainer = document.createElement('div');
+        exportContainer.className = 'export-page';
+        exportContainer.style.position = 'fixed';
+        exportContainer.style.left = '-9999px';
+        exportContainer.style.top = '0';
+        exportContainer.style.backgroundColor = '#f0f4fa';
+
+        // 页头
+        const header = document.createElement('div');
+        header.className = 'export-header';
+        const title = document.createElement('h2');
+        title.textContent = '赛博斗蛐蛐 · 战力排行';
+        const pageInfo = document.createElement('div');
+        pageInfo.className = 'page-info';
+        pageInfo.textContent = `第 ${pageIndex + 1} / ${totalPages} 页  ·  共 ${characters.length} 位角色`;
+        header.appendChild(title);
+        header.appendChild(pageInfo);
+        exportContainer.appendChild(header);
+
+        // 角色列表
+        const listDiv = document.createElement('div');
+        listDiv.className = 'export-list';
+
+        pageChars.forEach((char, idx) => {
+          const globalRank = start + idx + 1; // 全局排名
+          const item = document.createElement('div');
+          item.className = 'export-rank-item';
+
+          // 排名序号
+          const rankSpan = document.createElement('div');
+          rankSpan.className = 'export-rank-number';
+          rankSpan.textContent = globalRank;
+          item.appendChild(rankSpan);
+
+          // 头像
+          const avatarDiv = document.createElement('div');
+          avatarDiv.className = 'export-avatar';
+          const img = document.createElement('img');
+          img.src = char.avatar || generatePlaceholderAvatar(char.name);
+          img.alt = char.name;
+          avatarDiv.appendChild(img);
+          item.appendChild(avatarDiv);
+
+          // 信息
+          const infoDiv = document.createElement('div');
+          infoDiv.className = 'export-info';
+          const nameDiv = document.createElement('div');
+          nameDiv.className = 'export-name';
+          nameDiv.textContent = char.name;
+          const descDiv = document.createElement('div');
+          descDiv.className = 'export-desc';
+          descDiv.textContent = char.desc || '暂无说明';
+          infoDiv.appendChild(nameDiv);
+          infoDiv.appendChild(descDiv);
+          item.appendChild(infoDiv);
+
+          listDiv.appendChild(item);
         });
-        if (addForm) addForm.style.display = 'flex';
-        if (toolbar) toolbar.style.display = 'flex';
-        appContainer.style.padding = originalPadding;
 
-        // 下载
-        const link = document.createElement('a');
-        link.download = `赛博斗蛐蛐排行_${new Date().toISOString().slice(0,10)}.png`;
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-        showToast('图片已导出');
-      }).catch(err => {
-        // 恢复显示
-        itemActions.forEach((el, idx) => {
-          el.style.display = originalDisplayActions[idx] || 'flex';
+        exportContainer.appendChild(listDiv);
+
+        // 页脚
+        const footer = document.createElement('div');
+        footer.className = 'export-footer';
+        footer.textContent = `赛博斗蛐蛐 · 战力排行榜  ·  导出于 ${new Date().toLocaleString()}`;
+        exportContainer.appendChild(footer);
+
+        document.body.appendChild(exportContainer);
+
+        // 使用 html2canvas 截图
+        html2canvas(exportContainer, {
+          scale: 2,               // 提高清晰度
+          backgroundColor: '#f0f4fa',
+          allowTaint: false,
+          useCORS: true,
+          logging: false,
+        }).then(canvas => {
+          // 将canvas存入数组
+          canvases.push(canvas);
+          // 移除临时容器
+          document.body.removeChild(exportContainer);
+          // 生成下一页
+          generatePage(pageIndex + 1);
+        }).catch(err => {
+          console.error('截图失败', err);
+          document.body.removeChild(exportContainer);
+          showToast(`第 ${pageIndex + 1} 页生成失败`);
+          // 继续下一页（或中止，这里选择继续）
+          generatePage(pageIndex + 1);
         });
-        if (addForm) addForm.style.display = 'flex';
-        if (toolbar) toolbar.style.display = 'flex';
-        appContainer.style.padding = originalPadding;
-        showToast('导出失败，请重试');
-        console.error(err);
-      });
+      }
+
+      // 下载所有canvas为图片
+      function downloadAll(canvasArray) {
+        if (!canvasArray.length) {
+          showToast('导出失败');
+          return;
+        }
+
+        canvasArray.forEach((canvas, idx) => {
+          const link = document.createElement('a');
+          const pageNum = idx + 1;
+          link.download = `赛博斗蛐蛐_第${pageNum}页_${new Date().toISOString().slice(0,10)}.png`;
+          link.href = canvas.toDataURL('image/png');
+          link.click();
+        });
+
+        showToast(`已导出 ${canvasArray.length} 张图片`);
+      }
+
+      // 开始生成第一页
+      generatePage(0);
     }
 
     // ---------- 轻提示 ----------
@@ -785,17 +988,14 @@
 
     // ---------- 初始化 ----------
     function init() {
-      // 尝试加载本地存储
       const loaded = loadFromLocal();
       if (!loaded) {
-        // 首次使用，设置示例
         characters = getSampleCharactersWithAvatars();
-        saveToLocal(); // 存一下
+        saveToLocal();
       }
       
       renderList();
 
-      // 事件绑定
       saveBtn.addEventListener('click', () => {
         saveToLocal();
       });
@@ -806,7 +1006,6 @@
 
       addBtn.addEventListener('click', addNewCharacter);
 
-      // 回车添加
       newName.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') addNewCharacter();
       });
@@ -814,13 +1013,11 @@
         if (e.key === 'Enter') addNewCharacter();
       });
 
-      // 窗口关闭前自动保存(通常已自动保存，此为保证)
       window.addEventListener('beforeunload', () => {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(characters));
       });
     }
 
-    // 启动
     init();
   })();
 </script>
